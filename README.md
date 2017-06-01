@@ -1,24 +1,9 @@
 # fluctus
 A simple pitch detection app using web audio and typescript
 
+## TODO
+ [ ] - Rx + Async/Await
 
-## Technical
 
-[x] - Universalish Components
-
-[ ] - UIBuilder Components
-
-[ ] - Getter/Setters for minimal updates
-
-[ ] - Rx + Async/Await
-
-[ ] - IxDom
-
-## Visual 
-
-[ ] - Slow Realtime Frequency chart over time with notes as labels
-
-[ ] - SVG Everything
-
-[ ] - Multi-touch keyboard
-
+AutoCorrelate Function Source
+https://github.com/cwilso/PitchDetect/blob/master/js/pitchdetect.js
