@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "ES6",
+        "sourceMap": true,
+        "strictNullChecks": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "jsx": "react",
+        "reactNamespace": "UIBuilder",
+        "watch": true,
+        "outFile": "./app.js",
+        "module": "amd"
+    },
+    "files": [
+        "Component.tsx",
+        "NoteDisplayComponent.tsx",
+        "FrequencyDomainComponent.tsx",
+        "fluctus.ts",
+        "Utils.ts"
+    ]
+
+}
