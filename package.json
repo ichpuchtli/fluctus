@@ -1,0 +1,19 @@
+{
+  "name": "fluctus",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "dev:test": "vite --host 127.0.0.1 --port 4175 --strictPort",
+    "build": "tsc && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}
