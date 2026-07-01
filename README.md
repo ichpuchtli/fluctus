@@ -30,7 +30,7 @@ npm run test:e2e
 
 Merges to `master` deploy to GitHub Pages through `.github/workflows/deploy-pages.yml`.
 
-In the GitHub repository settings, set **Pages** -> **Build and deployment** -> **Source** to **GitHub Actions**. The production build is emitted from `dist/` and uses a relative Vite base so it works from the `/fluctus/` project URL.
+The workflow builds the production app from `master`, publishes `dist/` to the `gh-pages` branch, and GitHub Pages serves that branch at the project URL. The Vite build uses a relative base so it works from `/fluctus/`.
 
 ## Direction
 
