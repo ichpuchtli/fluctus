@@ -7,19 +7,20 @@
 - App shell with utility tabs and audio status controls.
 - Uplifted pitch detector from the legacy app.
 - Pitch detector adjustment controls for note hold, display lag, and confidence gate.
-- Solfege trainer for do re mi fa so la ti do practice with movable root, confidence gate, tolerance, and hold controls.
+- Solfege trainer for do re mi fa so la ti do practice with movable root, octave, confidence gate, tolerance, hold, and damping controls.
 - Note history, interval detection, chord detection, harmonic/overtone display, oscilloscope, spectrum analyzer, and spectrogram.
+- Every current tab exposes at least one meaningful control surface. Analysis views now include waveform gain/window/persistence, FFT bar/gain/floor/curve, and spectrogram speed/gain/floor/contrast controls.
 
 ## Phase 2: Functional Tools
 
 - Voice and instrument range helper.
-- Add meaningful adjustment controls across every utility view, starting from the pitch detector pattern.
+- Keep extending adjustment controls across every utility view as new detection or visual tradeoffs appear.
 - Expand solfege training with generated target tones, call-and-response phrases, minor/modal scales, and session scoring.
 
 ## Phase 3: Artistic Visualizers
 
-- Sonic Ripple Field WebGL tab. Initial shader-only version exists with FFT texture sampling, pointer ripple impulses, shader caustics, and fullscreen focus mode; next step is browser screenshot tuning and a later real fluid simulation.
-- Cymatics visualizer family: Chladni-style plates, resonant water trays, sand-on-membrane particle modes, and fluid standing-wave simulations. Initial WebGL Cymatic Plate tab exists with plate, water, and sand modes driven by pitch, FFT bands, and pointer excitation.
+- Sonic Ripple Field WebGL tab. Initial shader-only version exists with FFT texture sampling, pointer ripple impulses, shader caustics, fullscreen focus mode, and drive/texture/touch controls; next step is browser screenshot tuning and a later real fluid simulation.
+- Cymatics visualizer family: Chladni-style plates, resonant water trays, sand-on-membrane particle modes, and fluid standing-wave simulations. Initial WebGL Cymatic Plate tab exists with plate, water, and sand modes driven by pitch, FFT bands, pointer excitation, and excite/grain/touch controls.
 - Kaleidoscope/radial symmetry visualizer.
 - Particle field driven by RMS and frequency bands.
 - Lissajous and phase-style visualizer.

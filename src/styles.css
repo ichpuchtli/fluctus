@@ -321,6 +321,10 @@ button {
   gap: 4px;
 }
 
+.preset-controls .adjustment-field {
+  min-width: 156px;
+}
+
 .preset-label {
   padding: 0 4px 0 2px;
   color: rgba(168, 184, 207, 0.72);
@@ -422,8 +426,8 @@ button {
 }
 
 .solfege-controls {
-  grid-template-columns: minmax(120px, 0.8fr) minmax(120px, 0.8fr) repeat(3, minmax(120px, 1fr));
-  width: min(760px, calc(100% - 28px));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  width: min(720px, calc(100% - 28px));
 }
 
 .adjustment-value {
@@ -546,6 +550,10 @@ button {
     bottom: 10px;
     left: 10px;
     justify-content: center;
+  }
+
+  .preset-controls .adjustment-field {
+    min-width: min(220px, 100%);
   }
 
   .adjustment-controls {

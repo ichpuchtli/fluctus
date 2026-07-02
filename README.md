@@ -4,7 +4,7 @@ Fluctus is a microphone-driven sound visualization lab built with Web Audio, van
 
 It starts as an uplift of a simple pitch detector and grows into a collection of functional and artistic utilities: note detection, tuning views, oscilloscopes, FFT displays, spectrograms, chord tools, kaleidoscopes, and nostalgic Winamp-style visualizers.
 
-Current tabs include pitch detection, solfege training, note history, interval detection, chord detection, harmonics, oscilloscope, spectrum analyzer, spectrogram, Sonic Ripple Field, and Cymatic Plate. The pitch detector includes adjustable note hold, display lag, and confidence gate controls so notes remain perceptible without changing the raw audio stream.
+Current tabs include pitch detection, solfege training, note history, interval detection, chord detection, harmonics, oscilloscope, spectrum analyzer, spectrogram, Sonic Ripple Field, and Cymatic Plate. Each screen exposes tuning controls for the useful tradeoffs in that view, from pitch confidence and note hold to FFT gain, spectrogram speed, waveform persistence, and shader excitation.
 
 ## Development
 
@@ -37,6 +37,7 @@ The workflow builds the production app from `master`, publishes `dist/` to the `
 - Vanilla TypeScript, direct DOM, Canvas, SVG, and WebGL.
 - One shared microphone audio engine.
 - Art visualizers use smoothed musical features for slow bass/body motion while keeping raw FFT texture detail available to shaders. `Still`, `Flow`, and `Live` motion controls tune the damping per visualizer.
+- Functional voice tools should expose confidence, tolerance, hold, octave, and damping controls where those tradeoffs affect human perception.
 - Functional tools first, immersive visualizers next.
 - `master` is source; GitHub Actions publishes the static `dist/` artifact to Pages.
 

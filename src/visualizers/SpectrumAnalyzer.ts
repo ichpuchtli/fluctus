@@ -1,5 +1,6 @@
 import type { AudioFrame } from "../audio/AudioEngine";
 import { clearCanvas, createCanvas, resizeCanvas } from "./canvas";
+import { createSliderControl } from "./controls";
 import type { Visualizer, VisualizerHost } from "./types";
 
 export class SpectrumAnalyzer implements Visualizer {
@@ -8,13 +9,23 @@ export class SpectrumAnalyzer implements Visualizer {
   description = "FFT energy bands with a logarithmic musical emphasis.";
 
   private canvas = createCanvas();
+  private controls = document.createElement("div");
   private context: CanvasRenderingContext2D | null = null;
   private readout: HTMLElement | null = null;
+  private barCount = 96;
+  private gain = 1.25;
+  private floor = 6;
+  private curve = 1.35;
+
+  constructor() {
+    this.controls.className = "adjustment-controls compact-adjustments";
+  }
 
   mount(host: VisualizerHost): void {
     host.title.textContent = this.name;
     this.readout = host.readout;
-    host.surface.append(this.canvas);
+    host.surface.append(this.canvas, this.controls);
+    this.mountControls();
     this.context = resizeCanvas(this.canvas);
   }
 
@@ -36,7 +47,7 @@ export class SpectrumAnalyzer implements Visualizer {
       return;
     }
 
-    const bars = Math.min(96, Math.floor(rect.width / 8));
+    const bars = Math.min(this.barCount, Math.max(12, Math.floor(rect.width / 5)));
     const nyquist = frame.sampleRate / 2;
     let dominantFrequency = 0;
     let dominantValue = 0;
@@ -62,10 +73,11 @@ export class SpectrumAnalyzer implements Visualizer {
         }
       }
 
-      const value = sum / (highBin - lowBin) / 255;
+      const rawValue = sum / (highBin - lowBin) / 255;
+      const value = Math.min(1, Math.max(0, (rawValue - this.floor / 100) * this.gain));
       const barWidth = rect.width / bars;
       const x = i * barWidth;
-      const barHeight = Math.max(2, value ** 1.45 * rect.height * 0.92);
+      const barHeight = Math.max(2, value ** this.curve * rect.height * 0.92);
       const y = rect.height - barHeight;
       const hue = 188 + value * 42;
 
@@ -74,11 +86,12 @@ export class SpectrumAnalyzer implements Visualizer {
     }
 
     context.restore();
-    this.setReadout(`Peak ${Math.round(dominantFrequency)} Hz / RMS ${frame.rms.toFixed(3)}`);
+    this.setReadout(`Peak ${Math.round(dominantFrequency)} Hz / RMS ${frame.rms.toFixed(3)} / bars ${bars} / gain ${this.gain.toFixed(1)}x`);
   }
 
   destroy(): void {
     this.canvas.remove();
+    this.controls.remove();
     this.context = null;
     this.readout = null;
   }
@@ -87,5 +100,22 @@ export class SpectrumAnalyzer implements Visualizer {
     if (this.readout) {
       this.readout.textContent = value;
     }
+  }
+
+  private mountControls(): void {
+    this.controls.replaceChildren(
+      createSliderControl("Bars", 24, 192, 4, this.barCount, "", (value) => {
+        this.barCount = value;
+      }),
+      createSliderControl("Gain", 50, 400, 5, this.gain * 100, "%", (value) => {
+        this.gain = value / 100;
+      }),
+      createSliderControl("Floor", 0, 40, 1, this.floor, "%", (value) => {
+        this.floor = value;
+      }),
+      createSliderControl("Curve", 55, 260, 5, this.curve * 100, "%", (value) => {
+        this.curve = value / 100;
+      }),
+    );
   }
 }

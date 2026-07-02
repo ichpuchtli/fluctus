@@ -23,6 +23,7 @@ const degrees: Degree[] = [
 ];
 
 const rootOptions = noteNames.map((name, index) => ({ label: name, value: String(index) }));
+const octaveOptions = [1, 2, 3, 4, 5, 6].map((octave) => ({ label: String(octave), value: String(octave) }));
 const directionOptions: Array<{ label: string; value: Direction }> = [
   { label: "Up", value: "ascending" },
   { label: "Down", value: "descending" },
@@ -45,10 +46,13 @@ export class SolfegeTrainer implements Visualizer {
   private confidenceGate = 0.32;
   private toleranceCents = 35;
   private holdMs = 520;
+  private damping = 0.72;
   private hitStartedAt = 0;
   private streak = 0;
   private attempts = 0;
   private hits = 0;
+  private smoothedFrequency = 0;
+  private smoothedConfidence = 0;
 
   constructor() {
     this.controls.className = "adjustment-controls solfege-controls";
@@ -75,7 +79,7 @@ export class SolfegeTrainer implements Visualizer {
     const rect = this.canvas.getBoundingClientRect();
     clearCanvas(context, this.canvas, "#07080d");
 
-    const pitch = frame?.pitch && frame.pitch.confidence >= this.confidenceGate ? frame.pitch : null;
+    const pitch = this.smoothPitch(frame?.pitch ?? null);
     const target = this.targetMidi();
     const cents = pitch ? Math.round(1200 * Math.log2(pitch.frequency / frequencyFromNoteNumber(target))) : null;
     const isHit = cents !== null && Math.abs(cents) <= this.toleranceCents;
@@ -222,13 +226,17 @@ export class SolfegeTrainer implements Visualizer {
     const target = degrees[this.targetIndex];
     const accuracy = this.attempts > 0 ? Math.round((this.hits / this.attempts) * 100) : 0;
     const live = pitch ? `${pitch.frequency.toFixed(1)} Hz / ${cents ?? 0}c` : "waiting";
-    this.readout.textContent = `${target.name} / ${live} / streak ${this.streak} / ${accuracy}%`;
+    this.readout.textContent = `${target.name} octave ${this.rootOctave} / ${live} / streak ${this.streak} / ${accuracy}%`;
   }
 
   private mountControls(): void {
     this.controls.replaceChildren(
       createSelectControl("Root", rootOptions, String(this.rootPitchClass), (value) => {
         this.rootPitchClass = Number(value);
+        this.resetRun();
+      }),
+      createSelectControl("Octave", octaveOptions, String(this.rootOctave), (value) => {
+        this.rootOctave = Number(value);
         this.resetRun();
       }),
       createSelectControl("Mode", directionOptions, this.direction, (value) => {
@@ -244,6 +252,11 @@ export class SolfegeTrainer implements Visualizer {
       createSliderControl("Hold", 120, 1600, 40, this.holdMs, "ms", (value) => {
         this.holdMs = value;
       }),
+      createSliderControl("Damp", 0, 92, 2, this.damping * 100, "%", (value) => {
+        this.damping = value / 100;
+        this.smoothedFrequency = 0;
+        this.smoothedConfidence = 0;
+      }),
     );
   }
 
@@ -253,5 +266,40 @@ export class SolfegeTrainer implements Visualizer {
     this.streak = 0;
     this.attempts = 0;
     this.hits = 0;
+    this.smoothedFrequency = 0;
+    this.smoothedConfidence = 0;
+  }
+
+  private smoothPitch(pitch: AudioFrame["pitch"]): AudioFrame["pitch"] {
+    if (!pitch || pitch.confidence < this.confidenceGate) {
+      this.smoothedConfidence *= this.damping;
+      if (this.smoothedConfidence < this.confidenceGate * 0.72) {
+        this.smoothedFrequency = 0;
+        return null;
+      }
+
+      return this.smoothedFrequency > 0
+        ? {
+            frequency: this.smoothedFrequency,
+            confidence: this.smoothedConfidence,
+          }
+        : null;
+    }
+
+    if (this.smoothedFrequency <= 0) {
+      this.smoothedFrequency = pitch.frequency;
+      this.smoothedConfidence = pitch.confidence;
+    } else {
+      const currentCents = 1200 * Math.log2(this.smoothedFrequency);
+      const nextCents = 1200 * Math.log2(pitch.frequency);
+      const mixedCents = currentCents * this.damping + nextCents * (1 - this.damping);
+      this.smoothedFrequency = 2 ** (mixedCents / 1200);
+      this.smoothedConfidence = this.smoothedConfidence * this.damping + pitch.confidence * (1 - this.damping);
+    }
+
+    return {
+      frequency: this.smoothedFrequency,
+      confidence: this.smoothedConfidence,
+    };
   }
 }

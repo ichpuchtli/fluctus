@@ -1,5 +1,6 @@
 import type { AudioFrame } from "../audio/AudioEngine";
 import { createCanvas, resizeCanvas } from "./canvas";
+import { createSliderControl } from "./controls";
 import type { Visualizer, VisualizerHost } from "./types";
 
 export class Spectrogram implements Visualizer {
@@ -9,15 +10,25 @@ export class Spectrogram implements Visualizer {
 
   private canvas = createCanvas();
   private history = document.createElement("canvas");
+  private controls = document.createElement("div");
   private context: CanvasRenderingContext2D | null = null;
   private historyContext: CanvasRenderingContext2D | null = null;
   private readout: HTMLElement | null = null;
   private lastColumnAt = 0;
+  private speedMs = 32;
+  private gain = 1.25;
+  private floor = 8;
+  private contrast = 1.55;
+
+  constructor() {
+    this.controls.className = "adjustment-controls compact-adjustments";
+  }
 
   mount(host: VisualizerHost): void {
     host.title.textContent = this.name;
     this.readout = host.readout;
-    host.surface.append(this.canvas);
+    host.surface.append(this.canvas, this.controls);
+    this.mountControls();
     this.context = resizeCanvas(this.canvas);
     this.resizeHistory();
   }
@@ -38,7 +49,7 @@ export class Spectrogram implements Visualizer {
       return;
     }
 
-    if (time - this.lastColumnAt > 32) {
+    if (time - this.lastColumnAt > this.speedMs) {
       this.pushColumn(frame);
       this.lastColumnAt = time;
     }
@@ -48,6 +59,7 @@ export class Spectrogram implements Visualizer {
 
   destroy(): void {
     this.canvas.remove();
+    this.controls.remove();
     this.context = null;
     this.historyContext = null;
     this.readout = null;
@@ -84,8 +96,9 @@ export class Spectrogram implements Visualizer {
       const norm = 1 - y / Math.max(1, height - 1);
       const frequency = 30 * (frame.sampleRate / 2 / 30) ** norm;
       const bin = Math.min(source.length - 1, Math.max(0, Math.floor((frequency / (frame.sampleRate / 2)) * source.length)));
-      const value = (source[bin] ?? 0) / 255;
-      context.fillStyle = colorForValue(value, norm);
+      const rawValue = (source[bin] ?? 0) / 255;
+      const value = Math.min(1, Math.max(0, (rawValue - this.floor / 100) * this.gain));
+      context.fillStyle = colorForValue(value, norm, this.contrast);
       context.fillRect(width - 1, y, 1, 1);
     }
   }
@@ -103,7 +116,9 @@ export class Spectrogram implements Visualizer {
 
     const centroid = spectralCentroid(frame);
     const rolloff = spectralRolloff(frame, 0.86);
-    this.setReadout(`Centroid ${Math.round(centroid)} Hz / rolloff ${Math.round(rolloff)} Hz / RMS ${frame.rms.toFixed(3)}`);
+    this.setReadout(
+      `Centroid ${Math.round(centroid)} Hz / rolloff ${Math.round(rolloff)} Hz / speed ${this.speedMs}ms / gain ${this.gain.toFixed(1)}x`,
+    );
   }
 
   private drawEmpty(): void {
@@ -166,10 +181,27 @@ export class Spectrogram implements Visualizer {
       this.readout.textContent = value;
     }
   }
+
+  private mountControls(): void {
+    this.controls.replaceChildren(
+      createSliderControl("Speed", 12, 140, 4, this.speedMs, "ms", (value) => {
+        this.speedMs = value;
+      }),
+      createSliderControl("Gain", 50, 500, 5, this.gain * 100, "%", (value) => {
+        this.gain = value / 100;
+      }),
+      createSliderControl("Floor", 0, 45, 1, this.floor, "%", (value) => {
+        this.floor = value;
+      }),
+      createSliderControl("Contrast", 65, 280, 5, this.contrast * 100, "%", (value) => {
+        this.contrast = value / 100;
+      }),
+    );
+  }
 }
 
-function colorForValue(value: number, frequencyNorm: number): string {
-  const lifted = Math.max(0, (value - 0.08) / 0.92) ** 1.55;
+function colorForValue(value: number, frequencyNorm: number, contrast: number): string {
+  const lifted = Math.max(0, value) ** contrast;
   const hue = 206 - lifted * 180 + frequencyNorm * 26;
   const saturation = 42 + lifted * 56;
   const lightness = 5 + lifted * 58;

@@ -47,10 +47,12 @@ test("Solfege trainer renders training controls and scale surface", async ({ pag
   await expect(canvas).toBeVisible();
   await expect(page.getByRole("heading", { name: "Solfege trainer" })).toBeVisible();
   await expect(page.getByLabel("Root", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Octave", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Mode", { exact: true })).toBeVisible();
   await expect(page.getByRole("slider", { name: "Gate" })).toBeVisible();
   await expect(page.getByRole("slider", { name: "Tol" })).toBeVisible();
   await expect(page.getByRole("slider", { name: "Hold" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Damp" })).toBeVisible();
 
   await page.waitForTimeout(700);
 
@@ -171,6 +173,84 @@ test("Harmonics renders a nonblank overtone surface", async ({ page }) => {
   expect(consoleFailures).toEqual([]);
 });
 
+test("Oscilloscope exposes waveform tuning controls", async ({ page }) => {
+  const consoleFailures = collectConsoleFailures(page);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Oscilloscope" }).click();
+  await page.getByRole("button", { name: "Demo" }).click();
+
+  const canvas = page.locator(".visual-surface .visual-canvas");
+  await expect(canvas).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Oscilloscope" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Gain" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Window" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Trace" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Persist" })).toBeVisible();
+
+  await page.getByRole("slider", { name: "Gain" }).fill("220");
+  await page.waitForTimeout(500);
+
+  const screenshot = await canvas.screenshot();
+  const stats = readPngStats(screenshot);
+
+  expect(stats.distinctBuckets).toBeGreaterThan(8);
+  expect(stats.nonDarkRatio).toBeGreaterThan(0.01);
+  expect(consoleFailures).toEqual([]);
+});
+
+test("Spectrum analyzer exposes FFT tuning controls", async ({ page }) => {
+  const consoleFailures = collectConsoleFailures(page);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Spectrum analyzer" }).click();
+  await page.getByRole("button", { name: "Demo" }).click();
+
+  const canvas = page.locator(".visual-surface .visual-canvas");
+  await expect(canvas).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Spectrum analyzer" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Bars" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Gain" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Floor" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Curve" })).toBeVisible();
+
+  await page.getByRole("slider", { name: "Bars" }).fill("144");
+  await page.waitForTimeout(500);
+
+  const screenshot = await canvas.screenshot();
+  const stats = readPngStats(screenshot);
+
+  expect(stats.distinctBuckets).toBeGreaterThan(8);
+  expect(stats.nonDarkRatio).toBeGreaterThan(0.01);
+  expect(consoleFailures).toEqual([]);
+});
+
+test("Spectrogram exposes history tuning controls", async ({ page }) => {
+  const consoleFailures = collectConsoleFailures(page);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Spectrogram" }).click();
+  await page.getByRole("button", { name: "Demo" }).click();
+
+  const canvas = page.locator(".visual-surface .visual-canvas");
+  await expect(canvas).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Spectrogram" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Gain" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Floor" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Contrast" })).toBeVisible();
+
+  await page.getByRole("slider", { name: "Speed" }).fill("16");
+  await page.waitForTimeout(700);
+
+  const screenshot = await canvas.screenshot();
+  const stats = readPngStats(screenshot);
+
+  expect(stats.distinctBuckets).toBeGreaterThan(8);
+  expect(stats.nonDarkRatio).toBeGreaterThan(0.01);
+  expect(consoleFailures).toEqual([]);
+});
+
 test("Sonic Ripple Field renders a nonblank WebGL surface", async ({ page }) => {
   const consoleFailures = collectConsoleFailures(page);
 
@@ -184,7 +264,10 @@ test("Sonic Ripple Field renders a nonblank WebGL surface", async ({ page }) => 
   await expect(page.getByRole("button", { name: "still" })).toBeVisible();
   await expect(page.getByRole("button", { name: "flow" })).toBeVisible();
   await expect(page.getByRole("button", { name: "live" })).toBeVisible();
-  await expect(page.locator("[data-readout]")).toContainText(/tank \/ flow \/ slow bass/);
+  await expect(page.getByRole("slider", { name: "Drive" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Texture" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Touch" })).toBeVisible();
+  await expect(page.locator("[data-readout]")).toContainText(/tank \/ flow \/ drive/);
 
   await page.waitForTimeout(700);
 
@@ -226,6 +309,9 @@ test("Cymatic Plate renders a nonblank WebGL surface", async ({ page }) => {
   await expect(page.getByRole("button", { name: "still" })).toBeVisible();
   await expect(page.getByRole("button", { name: "flow" })).toBeVisible();
   await expect(page.getByRole("button", { name: "live" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Excite" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Grains" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Touch" })).toBeVisible();
   await expect(page.locator("[data-readout]")).toContainText(/plate \/ flow/);
 
   await page.waitForTimeout(700);

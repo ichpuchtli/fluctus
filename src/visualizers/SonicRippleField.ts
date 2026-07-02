@@ -1,5 +1,6 @@
 import type { AudioFrame } from "../audio/AudioEngine";
 import { VisualAudioSmoother, type MotionFeel } from "../audio/VisualAudioSmoother";
+import { createSliderControl } from "./controls";
 import { createWebGlProgram, resizeWebGlCanvas, type ShaderProgram } from "./webgl";
 import type { Visualizer, VisualizerHost } from "./types";
 
@@ -180,6 +181,9 @@ export class SonicRippleField implements Visualizer {
   private pointerEnergy = 0;
   private isPointerDown = false;
   private lastRenderTime = 0;
+  private drive = 1;
+  private textureGain = 1;
+  private touchGain = 1;
   private smoother = new VisualAudioSmoother();
 
   constructor() {
@@ -246,21 +250,21 @@ export class SonicRippleField implements Visualizer {
 
     uniform2f(gl, uniforms, "u_resolution", gl.canvas.width, gl.canvas.height);
     uniform1f(gl, uniforms, "u_time", visualAudio.visualTime);
-    uniform1f(gl, uniforms, "u_rms", visualAudio.rmsSlow);
-    uniform1f(gl, uniforms, "u_peak", visualAudio.transient);
-    uniform1f(gl, uniforms, "u_bass", visualAudio.bassSlow);
-    uniform1f(gl, uniforms, "u_mid", visualAudio.midSlow);
-    uniform1f(gl, uniforms, "u_treble", visualAudio.trebleSmooth);
+    uniform1f(gl, uniforms, "u_rms", clamp(visualAudio.rmsSlow * this.drive, 0, 1.8));
+    uniform1f(gl, uniforms, "u_peak", clamp(visualAudio.transient * this.drive, 0, 1.8));
+    uniform1f(gl, uniforms, "u_bass", clamp(visualAudio.bassSlow * this.drive, 0, 1.6));
+    uniform1f(gl, uniforms, "u_mid", clamp(visualAudio.midSlow * this.drive, 0, 1.6));
+    uniform1f(gl, uniforms, "u_treble", clamp(visualAudio.trebleSmooth * this.drive, 0, 1.6));
     uniform1f(gl, uniforms, "u_pitch", visualAudio.pitchFrequency);
     uniform1f(gl, uniforms, "u_pitchConfidence", visualAudio.pitchConfidence);
     uniform2f(gl, uniforms, "u_pointer", this.pointerX, this.pointerY);
-    uniform1f(gl, uniforms, "u_pointerEnergy", this.pointerEnergy);
+    uniform1f(gl, uniforms, "u_pointerEnergy", clamp(this.pointerEnergy * this.touchGain, 0, 2));
     uniform1i(gl, uniforms, "u_preset", presetIndex(this.preset));
     uniform1i(gl, uniforms, "u_audioTexture", 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     this.setReadout(
-      `${this.preset} / ${this.motionFeel} / slow bass ${visualAudio.bassSlow.toFixed(2)} / body ${visualAudio.drive.toFixed(2)} / transient ${visualAudio.transient.toFixed(3)} / touch ${this.pointerEnergy.toFixed(2)}`,
+      `${this.preset} / ${this.motionFeel} / drive ${this.drive.toFixed(1)}x / texture ${this.textureGain.toFixed(1)}x / slow bass ${visualAudio.bassSlow.toFixed(2)} / touch ${this.pointerEnergy.toFixed(2)}`,
     );
   }
 
@@ -312,6 +316,15 @@ export class SonicRippleField implements Visualizer {
           this.smoother.reset();
         },
       ),
+      createSliderControl("Drive", 20, 320, 5, this.drive * 100, "%", (value) => {
+        this.drive = value / 100;
+      }),
+      createSliderControl("Texture", 20, 320, 5, this.textureGain * 100, "%", (value) => {
+        this.textureGain = value / 100;
+      }),
+      createSliderControl("Touch", 0, 240, 5, this.touchGain * 100, "%", (value) => {
+        this.touchGain = value / 100;
+      }),
     );
   }
 
@@ -364,7 +377,7 @@ export class SonicRippleField implements Visualizer {
     } else {
       for (let index = 0; index < this.audioTextureData.length; index += 1) {
         const sourceIndex = Math.min(source.length - 1, Math.floor((index / this.audioTextureData.length) * source.length));
-        this.audioTextureData[index] = source[sourceIndex];
+        this.audioTextureData[index] = Math.min(255, Math.round(source[sourceIndex] * this.textureGain));
       }
     }
 

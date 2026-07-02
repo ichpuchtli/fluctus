@@ -1,5 +1,6 @@
 import type { AudioFrame } from "../audio/AudioEngine";
 import { VisualAudioSmoother, type MotionFeel } from "../audio/VisualAudioSmoother";
+import { createSliderControl } from "./controls";
 import { createWebGlProgram, resizeWebGlCanvas, type ShaderProgram } from "./webgl";
 import type { Visualizer, VisualizerHost } from "./types";
 
@@ -179,6 +180,9 @@ export class CymaticPlate implements Visualizer {
   private pointerEnergy = 0;
   private isPointerDown = false;
   private lastRenderTime = 0;
+  private excitation = 1;
+  private grainGain = 1;
+  private touchGain = 1;
   private smoother = new VisualAudioSmoother();
 
   constructor() {
@@ -245,21 +249,21 @@ export class CymaticPlate implements Visualizer {
 
     uniform2f(gl, uniforms, "u_resolution", gl.canvas.width, gl.canvas.height);
     uniform1f(gl, uniforms, "u_time", visualAudio.visualTime);
-    uniform1f(gl, uniforms, "u_rms", visualAudio.rmsSlow);
-    uniform1f(gl, uniforms, "u_peak", visualAudio.transient);
-    uniform1f(gl, uniforms, "u_bass", visualAudio.bassSlow);
-    uniform1f(gl, uniforms, "u_mid", visualAudio.midSlow);
-    uniform1f(gl, uniforms, "u_treble", visualAudio.trebleSmooth);
+    uniform1f(gl, uniforms, "u_rms", clamp(visualAudio.rmsSlow * this.excitation, 0, 1.8));
+    uniform1f(gl, uniforms, "u_peak", clamp(visualAudio.transient * this.excitation, 0, 1.8));
+    uniform1f(gl, uniforms, "u_bass", clamp(visualAudio.bassSlow * this.excitation, 0, 1.6));
+    uniform1f(gl, uniforms, "u_mid", clamp(visualAudio.midSlow * this.excitation, 0, 1.6));
+    uniform1f(gl, uniforms, "u_treble", clamp(visualAudio.trebleSmooth * this.excitation, 0, 1.6));
     uniform1f(gl, uniforms, "u_pitch", visualAudio.pitchFrequency);
     uniform1f(gl, uniforms, "u_pitchConfidence", visualAudio.pitchConfidence);
     uniform2f(gl, uniforms, "u_pointer", this.pointerX, this.pointerY);
-    uniform1f(gl, uniforms, "u_pointerEnergy", this.pointerEnergy);
+    uniform1f(gl, uniforms, "u_pointerEnergy", clamp(this.pointerEnergy * this.touchGain, 0, 2));
     uniform1i(gl, uniforms, "u_mode", modeIndex(this.mode));
     uniform1i(gl, uniforms, "u_audioTexture", 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     this.setReadout(
-      `${this.mode} / ${this.motionFeel} / ${visualAudio.pitchFrequency.toFixed(1)} Hz / slow bass ${visualAudio.bassSlow.toFixed(2)} / body ${visualAudio.drive.toFixed(2)} / touch ${this.pointerEnergy.toFixed(2)}`,
+      `${this.mode} / ${this.motionFeel} / excite ${this.excitation.toFixed(1)}x / grains ${this.grainGain.toFixed(1)}x / ${visualAudio.pitchFrequency.toFixed(1)} Hz / touch ${this.pointerEnergy.toFixed(2)}`,
     );
   }
 
@@ -311,6 +315,15 @@ export class CymaticPlate implements Visualizer {
           this.smoother.reset();
         },
       ),
+      createSliderControl("Excite", 20, 340, 5, this.excitation * 100, "%", (value) => {
+        this.excitation = value / 100;
+      }),
+      createSliderControl("Grains", 20, 340, 5, this.grainGain * 100, "%", (value) => {
+        this.grainGain = value / 100;
+      }),
+      createSliderControl("Touch", 0, 240, 5, this.touchGain * 100, "%", (value) => {
+        this.touchGain = value / 100;
+      }),
     );
   }
 
@@ -363,7 +376,7 @@ export class CymaticPlate implements Visualizer {
     } else {
       for (let index = 0; index < this.audioTextureData.length; index += 1) {
         const sourceIndex = Math.min(source.length - 1, Math.floor((index / this.audioTextureData.length) * source.length));
-        this.audioTextureData[index] = source[sourceIndex];
+        this.audioTextureData[index] = Math.min(255, Math.round(source[sourceIndex] * this.grainGain));
       }
     }
 
